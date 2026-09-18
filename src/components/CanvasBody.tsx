@@ -440,6 +440,7 @@ export default ((userOpts?: CanvasPageOptions) => {
     const minZoom = opts.minZoom ?? 0.1;
     const maxZoom = opts.maxZoom ?? 5;
     const zoomSensitivity = opts.zoomSensitivity ?? 0.002;
+    const initialFit = opts.initialFit ?? "contain";
     return (
       <article class="canvas-page popover-hint">
         <div
@@ -449,6 +450,8 @@ export default ((userOpts?: CanvasPageOptions) => {
           data-min-zoom={minZoom.toString()}
           data-max-zoom={maxZoom.toString()}
           data-zoom-sensitivity={zoomSensitivity.toString()}
+          data-initial-fit={initialFit}
+          data-content-padding={padding.toString()}
         >
           <div class="canvas-controls">
             <div class="canvas-zoom-group">

@@ -124,6 +124,12 @@ export interface CanvasPageOptions {
    * Default: 0.002 (~18% per mouse-wheel notch, smooth on trackpads).
    */
   zoomSensitivity?: number;
+  /**
+   * How the canvas is framed on load. "contain" fits the whole canvas;
+   * "width" fills the width and starts at the top (better for tall canvases).
+   * Default: "contain"
+   */
+  initialFit?: "contain" | "width";
 }
 
 /** Preset color map: preset number → CSS color value */

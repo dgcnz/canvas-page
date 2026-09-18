@@ -116,7 +116,8 @@
       "initialZoom": 1,
       "minZoom": 0.1,
       "maxZoom": 5,
-      "zoomSensitivity": 0.002
+      "zoomSensitivity": 0.002,
+      "initialFit": "contain"
     },
     "frames": {
       "CanvasFrame": {
@@ -138,6 +139,13 @@
       },
       "zoomSensitivity": {
         "type": "number"
+      },
+      "initialFit": {
+        "type": "string",
+        "enum": [
+          "contain",
+          "width"
+        ]
       }
     }
   },

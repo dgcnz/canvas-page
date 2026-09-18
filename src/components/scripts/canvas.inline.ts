@@ -14,6 +14,7 @@ function initCanvas() {
     const minZoom = parseFloat(container.dataset.minZoom ?? "") || 0.1;
     const maxZoom = parseFloat(container.dataset.maxZoom ?? "") || 5;
     const zoomSensitivity = parseFloat(container.dataset.zoomSensitivity ?? "") || 0.002;
+    const initialFit = container.dataset.initialFit === "width" ? "width" : "contain";
     let zoom = parseFloat(container.dataset.initialZoom ?? "") || 1;
     let panX = 0;
     let panY = 0;
@@ -29,14 +30,27 @@ function initCanvas() {
       const containerRect = container.getBoundingClientRect();
       const vw = parseFloat(viewport.style.width) || 1000;
       const vh = parseFloat(viewport.style.height) || 1000;
+      // Fit the nodes themselves, not the viewport's built-in padding, and leave a
+      // fixed on-screen margin (the old `* 0.9` wasted ~10% on top of the padding).
+      const pad = parseFloat(container.dataset.contentPadding ?? "") || 0;
+      const margin = 24;
+      const cw = vw - 2 * pad;
+      const ch = vh - 2 * pad;
+      const availW = containerRect.width - 2 * margin;
+      const availH = containerRect.height - 2 * margin;
 
-      const scaleX = containerRect.width / vw;
-      const scaleY = containerRect.height / vh;
-      zoom = Math.min(scaleX, scaleY, 1) * 0.9;
+      const scaleX = availW / cw;
+      const scaleY = availH / ch;
+      // "width": fill the width and start at the top; tall canvases are panned with
+      // a two-finger swipe instead of shrinking the whole thing to fit the height.
+      zoom = initialFit === "width" ? Math.min(scaleX, 1) : Math.min(scaleX, scaleY, 1);
       zoom = Math.max(minZoom, Math.min(maxZoom, zoom));
 
-      panX = (containerRect.width - vw * zoom) / 2;
-      panY = (containerRect.height - vh * zoom) / 2;
+      panX = (containerRect.width - cw * zoom) / 2 - pad * zoom;
+      panY =
+        ch * zoom > availH
+          ? margin - pad * zoom
+          : (containerRect.height - ch * zoom) / 2 - pad * zoom;
       applyTransform();
     };
 
