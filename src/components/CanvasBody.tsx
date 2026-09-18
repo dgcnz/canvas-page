@@ -44,6 +44,25 @@ function getEdgeAnchor(node: CanvasNode, side: string | undefined): { x: number;
   }
 }
 
+function offsetAlongSide(
+  p: { x: number; y: number },
+  side: string | undefined,
+  d: number,
+): { x: number; y: number } {
+  switch (side) {
+    case "top":
+      return { x: p.x, y: p.y - d };
+    case "bottom":
+      return { x: p.x, y: p.y + d };
+    case "left":
+      return { x: p.x - d, y: p.y };
+    case "right":
+      return { x: p.x + d, y: p.y };
+    default:
+      return p;
+  }
+}
+
 const headerRegex = /^h[1-6]$/;
 
 function findPage(fileSlug: FullSlug, allFiles: QuartzPluginData[]): QuartzPluginData | undefined {
@@ -198,12 +217,17 @@ function renderNode(
   const styleStr = Object.entries(baseStyle)
     .map(([k, v]) => `${k}:${v}`)
     .join(";");
+  const themed = color ? " is-themed" : "";
 
   switch (node.type) {
     case "text": {
       const html = renderedTexts[node.id];
       return (
-        <div class="canvas-node canvas-node-text" data-node-id={node.id} style={styleStr}>
+        <div
+          class={`canvas-node canvas-node-text${themed}`}
+          data-node-id={node.id}
+          style={styleStr}
+        >
           {html ? (
             <div class="canvas-node-content" dangerouslySetInnerHTML={{ __html: html }} />
           ) : (
@@ -221,7 +245,7 @@ function renderNode(
       if (isImage) {
         return (
           <div
-            class="canvas-node canvas-node-file canvas-node-image"
+            class={`canvas-node canvas-node-file canvas-node-image${themed}`}
             data-node-id={node.id}
             style={styleStr}
           >
@@ -233,7 +257,11 @@ function renderNode(
       const embedded = resolveEmbeddedHtml(fileSlug, slug, allFiles, node.subpath, visited);
 
       return (
-        <div class="canvas-node canvas-node-file" data-node-id={node.id} style={styleStr}>
+        <div
+          class={`canvas-node canvas-node-file${themed}`}
+          data-node-id={node.id}
+          style={styleStr}
+        >
           <div class="canvas-file-label">
             <a
               href={resolveRelative(slug, fileSlug)}
@@ -269,7 +297,11 @@ function renderNode(
         hostname = node.url;
       }
       return (
-        <div class="canvas-node canvas-node-link" data-node-id={node.id} style={styleStr}>
+        <div
+          class={`canvas-node canvas-node-link${themed}`}
+          data-node-id={node.id}
+          style={styleStr}
+        >
           <div class="canvas-link-label">
             <a
               href={node.url}
@@ -300,7 +332,11 @@ function renderNode(
 
     case "group":
       return (
-        <div class="canvas-node canvas-node-group" data-node-id={node.id} style={styleStr}>
+        <div
+          class={`canvas-node canvas-node-group${themed}`}
+          data-node-id={node.id}
+          style={styleStr}
+        >
           {node.label && <div class="canvas-group-label">{node.label}</div>}
         </div>
       );
@@ -325,11 +361,15 @@ function renderEdge(edge: CanvasEdge, nodeMap: Map<string, CanvasNode>): unknown
   const markerId = `arrow-${edge.id}`;
   const markerStartId = `arrow-start-${edge.id}`;
 
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const midX = from.x + dx / 2;
-  const midY = from.y + dy / 2;
-  const pathD = `M ${from.x} ${from.y} Q ${midX} ${from.y}, ${midX} ${midY} T ${to.x} ${to.y}`;
+  // Cubic bezier leaving/entering perpendicular to the attached side, like Obsidian.
+  const dist = Math.hypot(to.x - from.x, to.y - from.y);
+  const reach = Math.min(Math.max(dist / 2, 40), 300);
+  const c1 = offsetAlongSide(from, edge.fromSide, reach);
+  const c2 = offsetAlongSide(to, edge.toSide, reach);
+  const pathD = `M ${from.x} ${from.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${to.x} ${to.y}`;
+  // curve midpoint (t = 0.5) for the label
+  const midX = (from.x + 3 * c1.x + 3 * c2.x + to.x) / 8;
+  const midY = (from.y + 3 * c1.y + 3 * c2.y + to.y) / 8;
 
   return (
     <g class="canvas-edge" data-edge-id={edge.id}>
@@ -340,11 +380,11 @@ function renderEdge(edge: CanvasEdge, nodeMap: Map<string, CanvasNode>): unknown
             viewBox="0 0 10 10"
             refX="9"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={color ?? "var(--darkgray)"} />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={color ?? "var(--gray)"} />
           </marker>
         )}
         {hasFromArrow && (
@@ -353,36 +393,32 @@ function renderEdge(edge: CanvasEdge, nodeMap: Map<string, CanvasNode>): unknown
             viewBox="0 0 10 10"
             refX="1"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
-            <path d="M 10 0 L 0 5 L 10 10 z" fill={color ?? "var(--darkgray)"} />
+            <path d="M 10 0 L 0 5 L 10 10 z" fill={color ?? "var(--gray)"} />
           </marker>
         )}
       </defs>
       <path
         d={pathD}
         fill="none"
-        stroke={color ?? "var(--darkgray)"}
-        stroke-width="2"
+        stroke={color ?? "var(--gray)"}
+        stroke-width="3"
         marker-end={hasToArrow ? `url(#${markerId})` : undefined}
         marker-start={hasFromArrow ? `url(#${markerStartId})` : undefined}
       />
       {edge.label && (
-        <g class="canvas-edge-label-group">
-          <rect
-            x={midX - edge.label.length * 3.5 - 4}
-            y={midY - 20}
-            width={edge.label.length * 7 + 8}
-            height={16}
-            rx="3"
-            class="canvas-edge-label-bg"
-          />
-          <text x={midX} y={midY} class="canvas-edge-label" text-anchor="middle" dy="-8">
-            {edge.label}
-          </text>
-        </g>
+        <text
+          x={midX}
+          y={midY}
+          class="canvas-edge-label"
+          text-anchor="middle"
+          dominant-baseline="central"
+        >
+          {edge.label}
+        </text>
       )}
     </g>
   );
@@ -434,7 +470,12 @@ export default ((userOpts?: CanvasPageOptions) => {
     const viewWidth = maxX - minX + padding * 2;
     const viewHeight = maxY - minY + padding * 2;
 
-    const opts = userOpts ?? {};
+    // Quartz builds the body component without options; the plugin's options
+    // travel on the page data (set in pageType.generate).
+    const opts: CanvasPageOptions = {
+      ...(fileData.canvasOptions as CanvasPageOptions | undefined),
+      ...userOpts,
+    };
     const enableInteraction = opts.enableInteraction ?? true;
     const initialZoom = opts.initialZoom ?? 1;
     const minZoom = opts.minZoom ?? 0.1;
