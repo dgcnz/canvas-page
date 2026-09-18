@@ -45,6 +45,7 @@ ExternalPlugin.CanvasPage({
 | `initialZoom`       | `number`  | `1`     | The initial zoom level when the canvas is first displayed. |
 | `minZoom`           | `number`  | `0.1`   | The minimum zoom level allowed when zooming out.           |
 | `maxZoom`           | `number`  | `5`     | The maximum zoom level allowed when zooming in.            |
+| `zoomSensitivity`   | `number`  | `0.002` | Zoom speed for pinch / ctrl+wheel. Lower is slower.        |
 | `defaultFullscreen` | `boolean` | `false` | Whether canvas pages default to fullscreen mode.           |
 
 ## Documentation

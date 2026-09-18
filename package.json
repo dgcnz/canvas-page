@@ -75,7 +75,9 @@
     "github-slugger": "^2.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.2",
     "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
@@ -86,13 +88,16 @@
     "micromark-extension-gfm": "^3.0.0",
     "preact": "^10.28.2",
     "prettier": "^3.6.2",
+    "remark-breaks": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "sass": "^1.97.3",
     "sass-embedded": "^1.97.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
+    "unified": "^11.0.5",
     "vfile": "^6.0.3",
-    "vitest": "^2.1.9",
-    "@changesets/cli": "^2.29.2"
+    "vitest": "^2.1.9"
   },
   "quartz": {
     "name": "canvas-page",
@@ -110,7 +115,8 @@
       "enableInteraction": true,
       "initialZoom": 1,
       "minZoom": 0.1,
-      "maxZoom": 5
+      "maxZoom": 5,
+      "zoomSensitivity": 0.002
     },
     "frames": {
       "CanvasFrame": {
@@ -128,6 +134,9 @@
         "type": "number"
       },
       "maxZoom": {
+        "type": "number"
+      },
+      "zoomSensitivity": {
         "type": "number"
       }
     }

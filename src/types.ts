@@ -119,6 +119,11 @@ export interface CanvasPageOptions {
   minZoom?: number;
   /** Maximum zoom level. Default: 5 */
   maxZoom?: number;
+  /**
+   * How fast pinch / ctrl+wheel zooms: zoom *= exp(-deltaY * zoomSensitivity).
+   * Default: 0.002 (~18% per mouse-wheel notch, smooth on trackpads).
+   */
+  zoomSensitivity?: number;
 }
 
 /** Preset color map: preset number → CSS color value */

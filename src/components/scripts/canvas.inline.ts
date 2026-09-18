@@ -13,6 +13,7 @@ function initCanvas() {
 
     const minZoom = parseFloat(container.dataset.minZoom ?? "") || 0.1;
     const maxZoom = parseFloat(container.dataset.maxZoom ?? "") || 5;
+    const zoomSensitivity = parseFloat(container.dataset.zoomSensitivity ?? "") || 0.002;
     let zoom = parseFloat(container.dataset.initialZoom ?? "") || 1;
     let panX = 0;
     let panY = 0;
@@ -59,10 +60,21 @@ function initCanvas() {
     const cleanupFns: Array<() => void> = [];
 
     if (enableInteraction) {
+      // Wheel deltas can be in lines or pages; normalise to pixels.
+      const deltaScale = (e: WheelEvent) =>
+        e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? container.clientHeight : 1;
+
+      // Obsidian/Figma-style: scrolling (two-finger trackpad swipe, mouse wheel) pans;
+      // pinch (reported by browsers as wheel + ctrlKey) or ctrl/cmd + wheel zooms.
+      // Zoom is proportional to the delta, so a trackpad's stream of tiny events
+      // zooms smoothly instead of compounding a fixed 10% step per event.
       const onWheel = (e: WheelEvent) => {
+        const isZoom = e.ctrlKey || e.metaKey;
         // If the wheel target is inside a scrollable text node, let it scroll naturally
         const scrollable =
-          e.target instanceof HTMLElement ? e.target.closest(".canvas-node-content") : null;
+          !isZoom && e.target instanceof HTMLElement
+            ? e.target.closest(".canvas-node-content")
+            : null;
         if (scrollable) {
           const canScroll = scrollable.scrollHeight > scrollable.clientHeight;
           if (canScroll) {
@@ -79,13 +91,24 @@ function initCanvas() {
         }
 
         e.preventDefault();
+        const unit = deltaScale(e);
+
+        if (!isZoom) {
+          panX -= e.deltaX * unit;
+          panY -= e.deltaY * unit;
+          applyTransform();
+          updateResetButton();
+          return;
+        }
+
         const rect = container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
         const prevZoom = zoom;
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        zoom = Math.max(minZoom, Math.min(maxZoom, zoom * delta));
+        // pinch deltas are small (~1-10 per event); mouse ctrl+wheel ~100 per notch (~20%)
+        const factor = Math.exp(-e.deltaY * unit * zoomSensitivity);
+        zoom = Math.max(minZoom, Math.min(maxZoom, zoom * factor));
 
         panX = mouseX - (mouseX - panX) * (zoom / prevZoom);
         panY = mouseY - (mouseY - panY) * (zoom / prevZoom);

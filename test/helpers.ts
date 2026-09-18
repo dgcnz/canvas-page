@@ -26,7 +26,7 @@ export const createCtx = (overrides: BuildCtxOverrides = {}): BuildCtx => {
   return {
     buildId: "test-build",
     argv,
-    cfg: {} as QuartzConfig,
+    cfg: { plugins: { transformers: [] } } as unknown as QuartzConfig,
     allSlugs: [],
     allFiles: [],
     incremental: false,

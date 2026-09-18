@@ -49,7 +49,7 @@ describe("CanvasPage", () => {
     expect(plugin.fileExtensions).toEqual([".canvas"]);
   });
 
-  it("generates virtual pages from .canvas files", () => {
+  it("generates virtual pages from .canvas files", async () => {
     const ctx = createCtx({
       allFiles: ["notes/project.canvas" as FilePath, "readme.md" as FilePath],
     });
@@ -57,7 +57,7 @@ describe("CanvasPage", () => {
     const content: ProcessedContent[] = [];
     const cfg = ctx.cfg.configuration;
 
-    const pages = plugin.generate!({ content, cfg, ctx });
+    const pages = await plugin.generate!({ content, cfg, ctx });
 
     expect(pages).toHaveLength(1);
     expect(pages[0]!.slug).toBe("notes/project.canvas");
@@ -65,7 +65,7 @@ describe("CanvasPage", () => {
     expect(pages[0]!.data).toHaveProperty("canvasData");
   });
 
-  it("keeps the .canvas extension in virtual page slugs", () => {
+  it("keeps the .canvas extension in virtual page slugs", async () => {
     const ctx = createCtx({
       allFiles: ["maps/Team Board.canvas" as FilePath],
     });
@@ -73,14 +73,14 @@ describe("CanvasPage", () => {
     const content: ProcessedContent[] = [];
     const cfg = ctx.cfg.configuration;
 
-    const pages = plugin.generate!({ content, cfg, ctx });
+    const pages = await plugin.generate!({ content, cfg, ctx });
 
     expect(pages).toHaveLength(1);
     expect(pages[0]!.slug).toBe("maps/team-board.canvas");
     expect(pages[0]!.slug.endsWith(".canvas")).toBe(true);
   });
 
-  it("normalizes spaces to hyphens and lowercases canvas slugs", () => {
+  it("normalizes spaces to hyphens and lowercases canvas slugs", async () => {
     const ctx = createCtx({
       allFiles: ["Study Notes/Concept Civic Board.canvas" as FilePath],
     });
@@ -88,11 +88,52 @@ describe("CanvasPage", () => {
     const content: ProcessedContent[] = [];
     const cfg = ctx.cfg.configuration;
 
-    const pages = plugin.generate!({ content, cfg, ctx });
+    const pages = await plugin.generate!({ content, cfg, ctx });
 
     expect(pages).toHaveLength(1);
     expect(pages[0]!.slug).toBe("study-notes/concept-civic-board.canvas");
     expect(pages[0]!.title).toBe("Concept Civic Board");
+  });
+
+  describe("text node rendering", () => {
+    const textOf = (pages: Awaited<ReturnType<NonNullable<typeof plugin.generate>>>) =>
+      (pages[0]!.data.canvasData as { renderedTexts: Record<string, string> }).renderedTexts["1"];
+
+    it("runs text nodes through the site's configured transformers", async () => {
+      // stand-in for a site transformer (e.g. OFM wikilinks): rewrites text and records a link
+      const shout =
+        () => (tree: { children: unknown[] }, file: { data: Record<string, unknown> }) => {
+          const visit = (n: { type?: string; value?: string; children?: unknown[] }) => {
+            if (n.type === "text" && n.value) n.value = n.value.toUpperCase();
+            n.children?.forEach((c) => visit(c as typeof n));
+          };
+          visit(tree as typeof tree & { type: string });
+          file.data.links = ["notes/test"];
+        };
+      const ctx = createCtx({ allFiles: ["board.canvas" as FilePath] });
+      (ctx.cfg as unknown as { plugins: unknown }).plugins = {
+        transformers: [{ name: "Shout", markdownPlugins: () => [shout] }],
+      };
+
+      const pages = await plugin.generate!({ content: [], cfg: ctx.cfg.configuration, ctx });
+
+      expect(textOf(pages)).toBe("<p>HELLO</p>");
+      expect(pages[0]!.data.links).toEqual(["notes/test"]);
+    });
+
+    it("treats single newlines as line breaks, like Obsidian", async () => {
+      const { readFileSync } = await import("fs");
+      vi.mocked(readFileSync).mockReturnValueOnce(
+        JSON.stringify({
+          nodes: [{ id: "1", type: "text", x: 0, y: 0, width: 1, height: 1, text: "a\nb" }],
+        }),
+      );
+      const ctx = createCtx({ allFiles: ["board.canvas" as FilePath] });
+
+      const pages = await plugin.generate!({ content: [], cfg: ctx.cfg.configuration, ctx });
+
+      expect(textOf(pages)).toBe("<p>a<br>\nb</p>");
+    });
   });
 
   describe("embedded content resolution", () => {

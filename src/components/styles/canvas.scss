@@ -64,9 +64,56 @@
   min-height: 0;
 }
 
-.canvas-node-text {
-  .canvas-node-content {
-    white-space: pre-wrap;
+// Rendered markdown in text cards and embedded notes. Text cards are real HTML
+// now, so no pre-wrap: it turned the newlines between tags into blank lines.
+.canvas-node-text .canvas-node-content,
+.canvas-node-file .canvas-embed-content {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  p {
+    margin: 0.5em 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  pre {
+    overflow-x: auto;
+    padding: 0.5em;
+    border-radius: 4px;
+    background: var(--lightgray);
+  }
+
+  code {
+    font-size: 0.85em;
+  }
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
   }
 }
 
@@ -110,48 +157,6 @@
       &:hover {
         text-decoration: underline;
       }
-    }
-  }
-
-  .canvas-embed-content {
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      margin-top: 0.8em;
-      margin-bottom: 0.4em;
-
-      &:first-child {
-        margin-top: 0;
-      }
-    }
-
-    p {
-      margin: 0.5em 0;
-    }
-
-    ul,
-    ol {
-      padding-left: 1.5em;
-      margin: 0.5em 0;
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-    }
-
-    pre {
-      overflow-x: auto;
-      padding: 0.5em;
-      border-radius: 4px;
-      background: var(--lightgray);
-    }
-
-    code {
-      font-size: 0.85em;
     }
   }
 
